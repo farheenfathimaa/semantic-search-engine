@@ -1,103 +1,57 @@
-# utils/search.py
 import numpy as np
-import faiss
+from sentence_transformers import SentenceTransformer, CrossEncoder
 import pickle
-from sentence_transformers import SentenceTransformer
-from typing import List, Dict, Any
-import os
 
 class SemanticSearchEngine:
     def __init__(self):
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.index = None
+        self.embedding_model = SentenceTransformer('all-mpnet-base-v2')
+        self.cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
         self.papers = []
         self.embeddings = None
 
-    def create_embeddings(self, papers: List[Dict[str, Any]]):
-        """Create embeddings for research papers"""
+    def create_embeddings(self, papers):
         self.papers = papers
         texts = [f"{p['title']} {p['abstract']}" for p in papers]
-        print(f"Creating embeddings for {len(texts)} papers...")
-        self.embeddings = self.model.encode(texts, show_progress_bar=True)
-
-        # Create FAISS index
-        dimension = self.embeddings.shape[1]
-        self.index = faiss.IndexFlatIP(dimension)
-        faiss.normalize_L2(self.embeddings)
-        self.index.add(self.embeddings.astype(np.float32))
-
-        self.save_embeddings()
-
-    def save_embeddings(self):
-        """Save embeddings and papers to disk"""
-        os.makedirs("data", exist_ok=True)
-        data_to_save = {
-            'embeddings': self.embeddings,
-            'papers': self.papers,
-            'index': faiss.serialize_index(self.index)
-        }
+        self.embeddings = self.embedding_model.encode(texts, show_progress_bar=True)
         with open("data/embeddings.pkl", "wb") as f:
-            pickle.dump(data_to_save, f)
+            pickle.dump((self.papers, self.embeddings), f)
 
     def load_embeddings(self):
-        """Load embeddings and papers from disk"""
         with open("data/embeddings.pkl", "rb") as f:
-            data = pickle.load(f)
-        self.embeddings = data['embeddings']
-        self.papers = data['papers']
-        self.index = faiss.deserialize_index(data['index'])
+            self.papers, self.embeddings = pickle.load(f)
 
-    def search(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
-        """Search for similar papers"""
-        if self.index is None:
-            raise ValueError("Search index not initialized")
+    def search(self, query, top_k=10, year_range=None, venue=None):
+        query_embedding = self.embedding_model.encode(query)
+        cosine_scores = np.dot(self.embeddings, query_embedding) / (
+            np.linalg.norm(self.embeddings, axis=1) * np.linalg.norm(query_embedding)
+        )
+        top_indices = np.argsort(-cosine_scores)[:50]
 
-        query_embedding = self.model.encode([query])
-        faiss.normalize_L2(query_embedding)
-        scores, indices = self.index.search(query_embedding.astype(np.float32), top_k)
+        filtered = []
+        for idx in top_indices:
+            p = self.papers[idx]
+            if year_range:
+                if not (year_range[0] <= p["year"] <= year_range[1]):
+                    continue
+            if venue and venue.lower() not in p["venue"].lower():
+                continue
+            filtered.append((p, cosine_scores[idx]))
 
-        results = []
-        for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
-            if idx < len(self.papers):
-                paper = self.papers[idx].copy()
-                paper['similarity_score'] = float(score)
-                paper['rank'] = i + 1
-                results.append(paper)
-        return results
+        if not filtered:
+            return []
 
-    def search_with_filters(
-        self,
-        query: str,
-        top_k: int = 10,
-        year_range: tuple = None,
-        venue: str = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Search for similar papers with optional filtering by year range and venue.
-        """
-        if self.index is None:
-            raise ValueError("Search index not initialized")
+        rerank_inputs = [(query, f"{p['title']} {p['abstract']}") for p, _ in filtered]
+        rerank_scores = self.cross_encoder.predict(rerank_inputs)
+        reranked = sorted(zip(filtered, rerank_scores), key=lambda x: -x[1])
 
-        query_embedding = self.model.encode([query])
-        faiss.normalize_L2(query_embedding)
-        scores, indices = self.index.search(query_embedding.astype(np.float32), top_k * 2)
-
-        results = []
-        for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
-            if idx < len(self.papers):
-                paper = self.papers[idx].copy()
-                paper['similarity_score'] = float(score)
-                paper['rank'] = i + 1
-
-                if year_range:
-                    if not (year_range[0] <= paper.get("year", 0) <= year_range[1]):
-                        continue
-                if venue:
-                    if venue.lower() not in paper.get("venue", "").lower():
-                        continue
-
-                results.append(paper)
-                if len(results) >= top_k:
-                    break
-
-        return results
+        return [
+            {
+                "title": p["title"],
+                "abstract": p["abstract"],
+                "url": p["url"],
+                "year": p["year"],
+                "venue": p["venue"],
+                "score": f"{score:.2f}"
+            }
+            for ((p, _), score) in reranked[:top_k]
+        ]

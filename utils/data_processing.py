@@ -9,32 +9,36 @@ class DataProcessor:
     def __init__(self):
         self.data_dir = "data"
         os.makedirs(self.data_dir, exist_ok=True)
-        # Use GPU if available
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = SentenceTransformer('all-MiniLM-L6-v2', device=device)
+        self.model = SentenceTransformer('all-mpnet-base-v2')
 
     def load_sample_data(self) -> List[Dict[str, Any]]:
-        """Load or fetch research papers data"""
         sample_file = os.path.join(self.data_dir, "sample_papers.json")
-
         if os.path.exists(sample_file):
-            if os.path.getsize(sample_file) == 0:
-                print("Sample data file is empty. Recreating...")
-            else:
-                with open(sample_file, "r", encoding="utf-8") as f:
-                    try:
-                        return json.load(f)
-                    except json.JSONDecodeError:
-                        print("Sample data file is corrupt. Recreating...")
+            with open(sample_file, "r", encoding="utf-8") as f:
+                return json.load(f)
 
-        # Fetch real papers if no valid cache
-        papers = self.fetch_arxiv_papers(
-            query="machine learning OR deep learning OR computer vision OR natural language processing",
-            max_results=100   # SAFE LIMIT
-        )
+        # Multi-query search
+        queries = [
+            "deep learning healthcare",
+            "machine learning healthcare",
+            "medical NLP",
+            "AI in medical diagnosis",
+            "clinical decision support"
+        ]
+
+        all_papers = []
+        seen_ids = set()
+        for q in queries:
+            papers = self.fetch_arxiv_papers(q, max_results=100)
+            for p in papers:
+                if p["id"] not in seen_ids:
+                    all_papers.append(p)
+                    seen_ids.add(p["id"])
+
         with open(sample_file, "w", encoding="utf-8") as f:
-            json.dump(papers, f, indent=2, ensure_ascii=False)
-        return papers
+            json.dump(all_papers, f, indent=2, ensure_ascii=False)
+
+        return all_papers
 
     def fetch_arxiv_papers(self, query: str, max_results: int = 100) -> List[Dict[str, Any]]:
         """Fetch papers from arXiv API using simple Search API (no Client)"""

@@ -6,6 +6,354 @@
     <title>Semantic Search Engine for Research Papers</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="/static/style.css" rel="stylesheet">
+    <style>
+        /* Enhanced Modern Styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .search-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .search-input-group input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .search-input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 1rem;
+        }
+
+        .filter-inputs input {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .filter-inputs input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-form button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .search-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .search-form button:active {
+            transform: translateY(0);
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .results-section h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+
+        .results-count {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .paper-card {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .paper-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+            border-color: #667eea;
+        }
+
+        .paper-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 1rem;
+        }
+
+        .paper-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2d3748;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        .similarity-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .paper-meta {
+            margin-bottom: 1rem;
+        }
+
+        .venue {
+            color: #667eea;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .venue i {
+            font-size: 0.9rem;
+        }
+
+        .paper-abstract {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .paper-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .paper-link {
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .paper-link:hover {
+            background: #5a67d8;
+            transform: translateY(-1px);
+        }
+
+        .features {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+        }
+
+        .features h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+            border-color: #667eea;
+        }
+
+        .feature-card i {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .search-section,
+            .results-section,
+            .features {
+                padding: 1.5rem;
+            }
+
+            .filter-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .paper-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .similarity-score {
+                align-self: flex-start;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Additional enhancements */
+        .search-input-group {
+            position: relative;
+        }
+
+        .search-input-group::before {
+            content: '\f002';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            z-index: 10;
+        }
+
+        /* Loading animation for better UX */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -17,10 +365,15 @@
         <div class="search-section">
             <form method="post" action="/search" class="search-form">
                 <div class="search-input-group">
-                    <input type="text" name="query" placeholder="Enter your search query (e.g., 'deep learning for natural language processing')" 
+                    <input type="text" name="query" placeholder="Enter your search query (e.g., 'deep learning for healthcare')"
                            value="{{ query if query else '' }}" required>
-                    <button type="submit"><i class="fas fa-search"></i></button>
                 </div>
+                <div class="filter-inputs">
+                    <input type="number" name="year_from" placeholder="Year from">
+                    <input type="number" name="year_to" placeholder="Year to">
+                    <input type="text" name="venue" placeholder="Venue">
+                </div>
+                <button type="submit"><i class="fas fa-search"></i> Search</button>
             </form>
         </div>
 
@@ -33,14 +386,10 @@
             <div class="paper-card">
                 <div class="paper-header">
                     <h3 class="paper-title">{{ paper.title }}</h3>
-                    <span class="similarity-score">{{ "%.1f"|format(paper.similarity_score * 100) }}% match</span>
+                    <span class="similarity-score">{{ paper.score }}% match</span>
                 </div>
                 
                 <div class="paper-meta">
-                    <span class="authors">
-                        <i class="fas fa-users"></i>
-                        {{ paper.authors|join(', ') }}
-                    </span>
                     <span class="venue">
                         <i class="fas fa-book"></i>
                         {{ paper.venue }} ({{ paper.year }})
@@ -52,11 +401,6 @@
                 </div>
                 
                 <div class="paper-footer">
-                    <div class="keywords">
-                        {% for keyword in paper.keywords %}
-                        <span class="keyword-tag">{{ keyword }}</span>
-                        {% endfor %}
-                    </div>
                     <a href="{{ paper.url }}" target="_blank" class="paper-link">
                         <i class="fas fa-external-link-alt"></i> View Paper
                     </a>

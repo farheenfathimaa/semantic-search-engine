@@ -1,6 +1,6 @@
 # app.py
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
@@ -11,18 +11,6 @@ from utils.data_processing import DataProcessor
 
 # Load environment variables
 load_dotenv()
-
-# (OPTIONAL) If you still want to keep model download logic, 
-# make sure it's compatible or comment it out.
-# from huggingface_hub import HfApi
-# def download_model(model_name):
-#     api = HfApi()
-#     model_info = api.model_info(model_name)
-#     return model_info
-
-# model_name = os.getenv("MODEL_NAME")
-# if model_name:
-#     download_model(model_name)
 
 app = FastAPI(title="Semantic Search Engine for Research Papers")
 
@@ -53,15 +41,27 @@ async def startup_event():
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/search")
-async def search(request: Request, query: str = Form(...)):
+@app.post("/search", response_class=HTMLResponse)
+async def search(
+    request: Request,
+    query: str = Form(...),
+    year_from: int = Form(None),
+    year_to: int = Form(None),
+    venue: str = Form(None),
+):
     try:
-        results = search_engine.search(query, top_k=10)
-        return templates.TemplateResponse("index.html", {
-            "request": request,
-            "query": query,
-            "results": results
-        })
+        year_range = None
+        if year_from is not None and year_to is not None:
+            year_range = (year_from, year_to)
+        results = search_engine.search(query, top_k=10, year_range=year_range, venue=venue)
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request": request,
+                "query": query,
+                "results": results
+            }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -70,6 +70,14 @@ async def api_search(query: str, top_k: int = 10):
     try:
         results = search_engine.search(query, top_k=top_k)
         return {"query": query, "results": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/export")
+async def export(query: str, top_k: int = 10):
+    try:
+        results = search_engine.search(query, top_k=top_k)
+        return JSONResponse(content=results)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
