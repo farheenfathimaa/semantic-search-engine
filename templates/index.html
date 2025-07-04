@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Search Engine for Research Papers</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-search"></i> Semantic Search Engine</h1>
+            <p class="subtitle">Search through 100,000+ research papers with natural language queries</p>
+        </header>
+
+        <div class="search-section">
+            <form method="post" action="/search" class="search-form">
+                <div class="search-input-group">
+                    <input type="text" name="query" placeholder="Enter your search query (e.g., 'deep learning for natural language processing')" 
+                           value="{{ query if query else '' }}" required>
+                    <button type="submit"><i class="fas fa-search"></i></button>
+                </div>
+            </form>
+        </div>
+
+        {% if query %}
+        <div class="results-section">
+            <h2>Search Results for: "{{ query }}"</h2>
+            <p class="results-count">Found {{ results|length }} relevant papers</p>
+            
+            {% for paper in results %}
+            <div class="paper-card">
+                <div class="paper-header">
+                    <h3 class="paper-title">{{ paper.title }}</h3>
+                    <span class="similarity-score">{{ "%.1f"|format(paper.similarity_score * 100) }}% match</span>
+                </div>
+                
+                <div class="paper-meta">
+                    <span class="authors">
+                        <i class="fas fa-users"></i>
+                        {{ paper.authors|join(', ') }}
+                    </span>
+                    <span class="venue">
+                        <i class="fas fa-book"></i>
+                        {{ paper.venue }} ({{ paper.year }})
+                    </span>
+                </div>
+                
+                <div class="paper-abstract">
+                    {{ paper.abstract }}
+                </div>
+                
+                <div class="paper-footer">
+                    <div class="keywords">
+                        {% for keyword in paper.keywords %}
+                        <span class="keyword-tag">{{ keyword }}</span>
+                        {% endfor %}
+                    </div>
+                    <a href="{{ paper.url }}" target="_blank" class="paper-link">
+                        <i class="fas fa-external-link-alt"></i> View Paper
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="features">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <i class="fas fa-brain"></i>
+                    <h3>Semantic Search</h3>
+                    <p>Uses advanced AI to understand the meaning behind your queries</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-database"></i>
+                    <h3>Large Dataset</h3>
+                    <p>Search through 100,000+ indexed research papers</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-bolt"></i>
+                    <h3>Fast Results</h3>
+                    <p>Get relevant results in milliseconds using FAISS indexing</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-filter"></i>
+                    <h3>Smart Ranking</h3>
+                    <p>Results ranked by semantic similarity and relevance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
